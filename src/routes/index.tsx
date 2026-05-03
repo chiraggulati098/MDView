@@ -5,11 +5,11 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "NeonMark — Sleek Markdown Editor" },
+      { title: "MD view — Markdown Viewer" },
       {
         name: "description",
         content:
-          "A fast, client-side Markdown editor with live preview, synced scrolling, and a techy neon dark theme. Zero backend.",
+          "A fast, client-side Markdown viewer with live preview, synced scrolling, and a techy neon dark theme. Zero backend.",
       },
     ],
   }),
