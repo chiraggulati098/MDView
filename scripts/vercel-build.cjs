@@ -32,7 +32,8 @@ if (!fs.existsSync(distDir)) {
 const out = path.join(projectRoot, '.vercel', 'output');
 safeRmDir(out);
 
-const funcDir = path.join(out, 'functions', '_app');
+// Use the <name>.func folder convention expected by Vercel Build Output API
+const funcDir = path.join(out, 'functions', '_app.func');
 const staticDir = path.join(out, 'static');
 fs.mkdirSync(funcDir, { recursive: true });
 fs.mkdirSync(staticDir, { recursive: true });
@@ -49,14 +50,15 @@ if (fs.existsSync(clientSrc)) {
 }
 
 // Edge wrapper that calls the generated server.fetch
+// Create an entrypoint that imports the server bundle. Use an ES module wrapper
+// since the server bundle is ESM.
 const indexJs = `import server from './dist/server/server.js';
 
 export default async function handler(request) {
-  // server.fetch expects a Request-like object
   return await server.fetch(request);
 }
 `;
-fs.writeFileSync(path.join(funcDir, 'index.js'), indexJs, 'utf8');
+fs.writeFileSync(path.join(funcDir, 'index.mjs'), indexJs, 'utf8');
 
 // .vc-config.json for the function (edge runtime)
 const vcConfig = { runtime: 'edge' };
@@ -67,7 +69,7 @@ const configJson = {
   version: 3,
   routes: [
     { handle: 'filesystem' },
-    { src: '/(.*)', dest: '/.vercel/functions/_app' }
+    { src: '/(.*)', dest: '/.vercel/functions/_app.func' }
   ]
 };
 fs.writeFileSync(path.join(out, 'config.json'), JSON.stringify(configJson, null, 2), 'utf8');
