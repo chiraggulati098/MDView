@@ -50,18 +50,35 @@ if (fs.existsSync(clientSrc)) {
 }
 
 // Edge wrapper that calls the generated server.fetch
-// Create an entrypoint that imports the server bundle. Use an ES module wrapper
-// since the server bundle is ESM.
-const indexJs = `import server from './dist/server/server.js';
+// Create a Node.js launcher that dynamically imports the ESM server bundle and
+// adapts Node's (req, res) to a Fetch API request/response pair.
+const indexJs = "module.exports = async function (req, res) {\n" +
+"  try {\n" +
+"    const { default: server } = await import('./dist/server/server.js');\n" +
+"    const protocol = req.headers['x-forwarded-proto'] || 'https';\n" +
+"    const host = req.headers.host || 'localhost';\n" +
+"    const url = new URL(req.url, protocol + '://' + host);\n\n" +
+"    const headers = new Headers();\n" +
+"    for (const [k, v] of Object.entries(req.headers || {})) {\n" +
+"      if (v != null) headers.set(k, String(v));\n" +
+"    }\n\n" +
+"    const body = (req.method === 'GET' || req.method === 'HEAD') ? undefined : req;\n" +
+"    const request = new Request(url.toString(), { method: req.method, headers, body });\n\n" +
+"    const response = await server.fetch(request);\n\n" +
+"    res.statusCode = response.status;\n" +
+"    response.headers.forEach((val, key) => res.setHeader(key, val));\n" +
+"    const buf = Buffer.from(await response.arrayBuffer());\n" +
+"    res.end(buf);\n" +
+"  } catch (err) {\n" +
+"    console.error('Function error:', err);\n" +
+"    res.statusCode = 500;\n" +
+"    res.end('Internal Server Error');\n" +
+"  }\n" +
+"};\n";
+fs.writeFileSync(path.join(funcDir, 'index.js'), indexJs, 'utf8');
 
-export default async function handler(request) {
-  return await server.fetch(request);
-}
-`;
-fs.writeFileSync(path.join(funcDir, 'index.mjs'), indexJs, 'utf8');
-
-// .vc-config.json for the function (edge runtime)
-const vcConfig = { runtime: 'edge' };
+// .vc-config.json for the function (Node.js runtime)
+const vcConfig = { runtime: 'nodejs' };
 fs.writeFileSync(path.join(funcDir, '.vc-config.json'), JSON.stringify(vcConfig, null, 2), 'utf8');
 
 // Top-level config to prefer filesystem (static) then function
