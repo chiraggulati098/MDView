@@ -77,9 +77,10 @@ const indexJs = "module.exports = async function (req, res) {\n" +
 "};\n";
 fs.writeFileSync(path.join(funcDir, 'index.js'), indexJs, 'utf8');
 
-// .vc-config.json for the function (Node.js runtime). Include a string `handler`
-// since Vercel validates that field is present and is a string.
-const vcConfig = { runtime: 'nodejs', handler: 'index.js' };
+// .vc-config.json for the function (Node.js runtime). Use a supported Node
+// runtime identifier and include a string `handler` required by Vercel.
+// Use `nodejs18.x` which is a commonly supported Vercel runtime.
+const vcConfig = { runtime: 'nodejs18.x', handler: 'index.js' };
 fs.writeFileSync(path.join(funcDir, '.vc-config.json'), JSON.stringify(vcConfig, null, 2), 'utf8');
 
 // Top-level config to prefer filesystem (static) then function
